@@ -26,7 +26,6 @@ import edu.gslis.queries.GQueriesJsonImpl;
 import edu.gslis.queries.GQuery;
 import edu.gslis.searchhits.SearchHit;
 import edu.gslis.searchhits.SearchHits;
-import edu.gslis.textrepresentation.FeatureVector;
 import edu.gslis.utils.SimpleLogger;
 
 public class SearcherDirichlet {
@@ -35,36 +34,23 @@ public class SearcherDirichlet {
 
 		private static SimpleLogger logger = new SimpleLogger(SearcherDirichletMap.class);
 
-		GQuery[] queries;
+		GQueriesJsonImpl queries;
 		FileBackedCollectionStats cs;
 		
 		public void setup(Context context) throws IOException {
-			Configuration config = context.getConfiguration();
-			String[] queries = config.getStrings("queries");
-			String[] queryNos = config.getStrings("queryNos");
+			URI[] paths = context.getCacheFiles();
 			
-			if (queries.length != queryNos.length) {
-				logger.warn("The number of queries does not equal the number of query titles."
-						+ "This will almost certainly cause problems.");
-			}
-
-			this.queries = new GQuery[queries.length];
-			for (int i = 0; i < queries.length; i++) {
-				FeatureVector vector = new FeatureVector(null);
-				vector.addText(queries[i]);
-
-				GQuery query = new GQuery();
-				query.setTitle(queryNos[i]);
-				query.setText(queries[i]);
-				query.setFeatureVector(vector);
-				
-				this.queries[i] = query;
-			}
-			logger.info(this.queries.length+" queries loaded.");
+			String queriesPath = paths[0].getPath();
+			logger.debug("Queries path: "+queriesPath);
+			queries = new GQueriesJsonImpl();
+			queries.read(queriesPath);
+			logger.info(queries.numQueries()+" queries loaded.");
 			
 			// Get collection stats
+			String metaPath = paths[1].getPath();
+			logger.debug("Meta path: "+metaPath);
 			cs = new FileBackedCollectionStats();
-			File metaFile = new File("AP-mini.meta");
+			File metaFile = new File(metaPath);
 			cs.setStatSource(metaFile);
 		}
 		
@@ -76,8 +62,12 @@ public class SearcherDirichlet {
 			String docLine = line.toString();
 
 			SearchHit parsedDoc = parser.parse(docLine);
-			for (GQuery query : queries) {
+			Iterator<GQuery> queryIt = queries.iterator();
+			while (queryIt.hasNext()) {
+				GQuery query = queryIt.next();
+
 				logger.debug("Working on query "+query.getTitle());
+
 				SearchHit doc = new SearchHit();
 				doc.setDocno(parsedDoc.getDocno());
 				doc.setFeatureVector(parsedDoc.getFeatureVector());
@@ -85,7 +75,9 @@ public class SearcherDirichlet {
 				
 				scorer.setQuery(query);
 				double score = scorer.score(doc);
+
 				logger.debug("Score for "+doc.getDocno()+": "+score);
+
 				doc.setScore(score);
 
 				context.write(new Text(query.getTitle()), new SearchHitWritable(doc));
@@ -125,24 +117,8 @@ public class SearcherDirichlet {
 
 	}
 	
-	public void run(edu.gslis.utils.Configuration params, GQueriesJsonImpl gQueries) throws IllegalArgumentException, IOException, ClassNotFoundException, InterruptedException, URISyntaxException {
-		
-		// Set up queries
-		String[] queries = new String[gQueries.numQueries()];
-		String[] queryNos = new String[gQueries.numQueries()];
-		int i = 0;
-		Iterator<GQuery> queryIt = gQueries.iterator();
-		while (queryIt.hasNext()) {
-			GQuery query = queryIt.next();
-			queries[i] = query.getText();
-			queryNos[i] = query.getTitle();
-
-			i++;
-		}
-		
+	public void run(edu.gslis.utils.Configuration params) throws IllegalArgumentException, IOException, ClassNotFoundException, InterruptedException, URISyntaxException {
 		Configuration conf = new Configuration();
-		conf.setStrings("queries", queries);
-		conf.setStrings("queryNos", queryNos);
 
 		Job job = Job.getInstance(conf, "search");
 		job.setJarByClass(SearcherDirichlet.class);
@@ -162,7 +138,8 @@ public class SearcherDirichlet {
 		FileOutputFormat.setOutputPath(job, new Path(outputPath));
 		job.setOutputFormatClass(TrecOutputFormat.class);
 		
-		// Metadata in distributed cache
+		// Metadata and queries in distributed cache
+		job.addCacheFile(new URI(params.get("queries")));
 		job.addCacheFile(new URI(inputPath+".meta"));
 		
 		System.exit(job.waitForCompletion(true) ? 0 : 1);

@@ -42,7 +42,6 @@ public class FileBackedCollectionStats extends CollectionStats {
 			Scanner scanner = new Scanner(statSource);
 			while (scanner.hasNextLine()) {
 				String line = scanner.nextLine();
-				logger.debug(line);
 				String[] parts = line.split("\\t");
 				if (parts.length == 2) { // Collection stats
 					if (parts[0].equals(TrecTextIndexer.DOCUMENT_COUNT)) {
@@ -59,8 +58,6 @@ public class FileBackedCollectionStats extends CollectionStats {
 				}
 			}
 			scanner.close();
-			logger.debug("Doc count: "+docCount);
-			logger.debug("Token count: "+tokCount);
 		} catch (FileNotFoundException e) {
 			logger.error("Error reading collection stats file.");
 			e.printStackTrace();
