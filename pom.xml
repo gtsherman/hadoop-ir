@@ -77,5 +77,11 @@
 		<artifactId>hadoop-client</artifactId>
 		<version>2.7.1</version>
 	</dependency>
+	<dependency>
+		<groupId>org.apache.pig</groupId>
+		<artifactId>pig</artifactId>
+		<classifier>h2</classifier>
+		<version>0.15.0</version>
+	</dependency>
   </dependencies>
 </project>
