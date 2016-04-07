@@ -49,6 +49,8 @@ public class IndexCondenserJSON {
 		FileInputFormat.addInputPath(job, new Path(inputPath));
 		FileOutputFormat.setOutputPath(job, new Path(outputPath));
 		
+		job.setNumReduceTasks(Integer.parseInt(params.get("reducer-count")));
+		
 		System.exit(job.waitForCompletion(true) ? 0 : 1);
 	}
 
