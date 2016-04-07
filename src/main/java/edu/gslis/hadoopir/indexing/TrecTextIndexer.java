@@ -1,12 +1,16 @@
 package edu.gslis.hadoopir.indexing;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 import edu.gslis.hadoopir.parsing.TrecTextParser;
 import edu.gslis.textrepresentation.FeatureVector;
@@ -46,34 +50,42 @@ public class TrecTextIndexer implements Indexer {
 			return;
 		}
 		
-		File out = new File(indexFile);
-		File metadata = new File(indexFile+".meta");
-		
-		long totalTokenCount = 0;
-		long totalDocCount = 0;
-		Map<String, Long> totalTermFreq = new HashMap<String, Long>();
-		Map<String, Long> totalTermDocFreq = new HashMap<String, Long>();
+		try {
+			/*
+			FileWriter out = new FileWriter(indexFile+".inter", true);
+			FileWriter metadata = new FileWriter(indexFile+".meta", true);
+			*/
+			
+			FileSystem fs = FileSystem.get(new Configuration());
+			Path outPath = new Path(indexFile+".inter");
+			Path metadataPath = new Path(indexFile+".meta");
+			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(fs.create(outPath, true)));
+			BufferedWriter metadata = new BufferedWriter(new OutputStreamWriter(fs.create(metadataPath, true)));
 
-		for (File file : dir.listFiles()) {
-			parser.parse(file);
-		
-			Map<String, String> docText = parser.getDocText();
-			for (String doc : docText.keySet()) {
-				String text = docText.get(doc);
+			long totalTokenCount = 0;
+			long totalDocCount = 0;
+			Map<String, Long> totalTermFreq = new HashMap<String, Long>();
+			Map<String, Long> totalTermDocFreq = new HashMap<String, Long>();
 
-				FeatureVector fv = new FeatureVector(null);
-				fv.addText(text);
-				
-				totalDocCount++;
-				totalTokenCount += fv.getLength();
-				
-				try {
-					FileUtils.writeStringToFile(out, doc+"\t"+fv.getLength(), true);
+			for (File file : dir.listFiles()) {
+				parser.parse(file);
+			
+				Map<String, String> docText = parser.getDocText();
+				for (String doc : docText.keySet()) {
+					String text = docText.get(doc);
+
+					FeatureVector fv = new FeatureVector(null);
+					fv.addText(text);
+					
+					totalDocCount++;
+					totalTokenCount += fv.getLength();
+					
+					//FileUtils.writeStringToFile(out, doc+"\t"+fv.getLength(), true);
 					
 					Iterator<String> vecIt = fv.iterator();
 					while (vecIt.hasNext()) {
 						String term = vecIt.next();
-						double termFreq = fv.getFeatureWeight(term);
+						int termFreq = (int) fv.getFeatureWeight(term);
 						
 						// Update total term freq
 						if (totalTermFreq.get(term) == null) {
@@ -87,26 +99,24 @@ public class TrecTextIndexer implements Indexer {
 						}
 						totalTermDocFreq.put(term, totalTermDocFreq.get(term) + 1);
 						
-						FileUtils.writeStringToFile(out, "\t"+term+","+termFreq, true);
+						out.write(term+"\t"+doc+"\t"+termFreq+"\n");
 					}
-					FileUtils.writeStringToFile(out, "\n", true);
-				} catch (IOException e) {
-					logger.error("Error writing to index file.");
 				}
 			}
-		}
 		
-		try {
-			FileUtils.writeStringToFile(metadata, TOKEN_COUNT+"\t"+totalTokenCount+"\n", false);
-			FileUtils.writeStringToFile(metadata, DOCUMENT_COUNT+"\t"+totalDocCount+"\n", true);
+			metadata.write(TOKEN_COUNT+"\t"+totalTokenCount+"\n");
+			metadata.write(DOCUMENT_COUNT+"\t"+totalDocCount+"\n");
 			for (String term : totalTermFreq.keySet()) {
-				FileUtils.writeStringToFile(metadata, term+"\t"+totalTermFreq.get(term)+"\t"+totalTermDocFreq.get(term)+"\n", true);
+				metadata.write(term+"\t"+totalTermFreq.get(term)+"\t"+totalTermDocFreq.get(term)+"\n");
 			}
-		} catch (IOException e) {
-			logger.error("Error writing to index metadata file.");
-		}
+			
+			out.close();
+			metadata.close();
 		
-		logger.info("Indexed "+totalDocCount+" documents.");
+			logger.info("Indexed "+totalDocCount+" documents.");
+		} catch (IOException e) {
+			logger.error("Error writing to index or metadata file: "+e);
+		}
 	}
 
 }
