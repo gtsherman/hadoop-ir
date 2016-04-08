@@ -21,6 +21,19 @@ data-dir: /path/to/corpus/directory/
 index-file: /path/to/index/file
 ```
 
+The current list of properties:
+
+| Property | Values | Description | Default |
+| -------- | ------ | ----------- | ------- |
+| cluster-mode | (cosine \| kl)? | Specify clustering metric | "cosine" |
+| cluster-output | {file path}? | Location to output clustering results | "clusters" |
+| data-dir | {file path}? | Directory containing raw documents | "data" |
+| index | {file path}? | Location of index; may be created, altered, or read | "index" |
+| queries | {file path} | Location of queries file | |
+| reducer-count | {number}? | Number of reducers to use; this property is not always respected | system default |
+| results | {file path}? | Location to output search results | "results" |
+| stoplist | {file path} | Location of stoplist |
+
 ## Indexing data
 
 Data must be "indexed" before searching. This is not truly an index, but is a more condensed format to represent documents.
