@@ -11,6 +11,8 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.json.simple.JSONObject;
 
+import edu.gslis.utils.SimpleConfiguration;
+
 public class IndexCondenserJSON {
 	
 	public static class IndexCondenserJSONReduce extends Reducer<Text, Text, Text, Text> {
@@ -44,12 +46,12 @@ public class IndexCondenserJSON {
 		job.setOutputValueClass(Text.class);
 		
 		// Set up input and output
-		String inputPath = params.get("index-file")+".inter";
-		String outputPath = params.get("index-file");
+		String inputPath = params.get(SimpleConfiguration.INDEX)+".inter";
+		String outputPath = params.get(SimpleConfiguration.INDEX);
 		FileInputFormat.addInputPath(job, new Path(inputPath));
 		FileOutputFormat.setOutputPath(job, new Path(outputPath));
 		
-		job.setNumReduceTasks(Integer.parseInt(params.get("reducer-count")));
+		job.setNumReduceTasks(Integer.parseInt(params.get(SimpleConfiguration.REDUCERS)));
 		
 		System.exit(job.waitForCompletion(true) ? 0 : 1);
 	}

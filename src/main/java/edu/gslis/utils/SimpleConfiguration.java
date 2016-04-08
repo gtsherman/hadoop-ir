@@ -14,6 +14,15 @@ import java.util.Scanner;
  */
 public class SimpleConfiguration implements Configuration {
 	
+	public static final String CLUSTER_MODE = "cluster-mode";
+	public static final String CLUSTER_OUTPUT = "cluster-output";
+	public static final String DATA = "data-dir";
+	public static final String INDEX = "index";
+	public static final String QUERIES = "queries";
+	public static final String REDUCERS = "reducer-count";
+	public static final String RESULTS = "results";
+	public static final String STOPLIST = "stoplist";
+	
 	private Map<String, String> config;
 	
 	public SimpleConfiguration() {

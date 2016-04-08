@@ -2,7 +2,7 @@ package edu.gslis.hadoopir.run;
 
 import java.io.IOException;
 
-import edu.gslis.hadoopir.indexing.IndexCondenserJSON;
+import edu.gslis.hadoopir.indexing.IndexCondenserTabbed;
 import edu.gslis.hadoopir.indexing.TrecTextIndexer;
 import edu.gslis.utils.Configuration;
 import edu.gslis.utils.SimpleConfiguration;
@@ -17,13 +17,13 @@ public class Index {
 		config.read(args[0]);
 
 		String dataDir = "data";
-		if (config.get("data-dir") != null) {
-			dataDir = config.get("data-dir");
+		if (config.get(SimpleConfiguration.DATA) != null) {
+			dataDir = config.get(SimpleConfiguration.DATA);
 		}
 		
 		String indexFile = "index";
-		if (config.get("index-file") != null) {
-			indexFile = config.get("index-file");
+		if (config.get(SimpleConfiguration.INDEX) != null) {
+			indexFile = config.get(SimpleConfiguration.INDEX);
 		}
 
 		logger.info("Constructing intermediate index");
@@ -31,7 +31,7 @@ public class Index {
 		indexer.index(indexFile);
 		
 		logger.info("Condensing index");
-		IndexCondenserJSON.run(config);
+		IndexCondenserTabbed.run(config);
 	}
 
 }
